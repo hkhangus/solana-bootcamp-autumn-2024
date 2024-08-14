@@ -3,7 +3,7 @@
  */
 
 import { PublicKey } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { createAccount, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 
 import { payer, connection } from "@/lib/vars";
 import { explorerURL, loadPublicKeysFromFile } from "@/lib/helpers";
