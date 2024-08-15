@@ -11,10 +11,7 @@ import {
   createInitializeMint2Instruction,
   createMintToInstruction,
   createAssociatedTokenAccountInstruction,
-  getOrCreateAssociatedTokenAccount,
-  getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  getAccount,
 } from "@solana/spl-token";
 
 import {
@@ -31,7 +28,6 @@ import {
   printConsoleSeparator,
   savePublicKeyToFile,
 } from "@/lib/helpers";
-import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 
 (async () => {
   console.log("Payer address:", payer.publicKey.toBase58());
@@ -122,46 +118,46 @@ import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
     },
   );
 
-  //   const tokenAccount_Self = await getOrCreateAssociatedTokenAccount(
-  //     connection,
-  //     payer,
-  //     mintKeypair.publicKey,
-  //     payer.publicKey,
-  //   ).then(ata => ata.address);
-
-  const associatedToken = getAssociatedTokenAddressSync(
-    mintKeypair.publicKey,
-    payer.publicKey,
-    false,
+  // Mint to self account
+  const associatedToken
+   = PublicKey.findProgramAddressSync(
+    [payer.publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintKeypair.publicKey.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
   const createAssociatedTokenAccountSelfInstruction = createAssociatedTokenAccountInstruction(
     payer.publicKey,
-    await getAssociatedTokenAddressSync(
-      mintKeypair.publicKey,
-      payer.publicKey,
-      false
-    ),
+    associatedToken[0],
     payer.publicKey,
     mintKeypair.publicKey,
   );
 
   const mintTokenToSelfInstruction = createMintToInstruction(
     mintKeypair.publicKey,
-    await getAccount(connection, associatedToken, "confirmed", TOKEN_PROGRAM_ID).then(
-      account => account.address,
-    ),
+    associatedToken[0],
     payer.publicKey,
     100_000_000,
   );
 
+  // Mint to static account
+  const associatedToken2
+   = PublicKey.findProgramAddressSync(
+    [STATIC_PUBLICKEY.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintKeypair.publicKey.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+
+  const createAssociatedTokenAccountStaticInstruction = createAssociatedTokenAccountInstruction(
+    payer.publicKey,
+    associatedToken2[0],
+    STATIC_PUBLICKEY,
+    mintKeypair.publicKey,
+  );
+
   const mintTokenToStaticAddressInstruction = createMintToInstruction(
     mintKeypair.publicKey,
-    STATIC_PUBLICKEY,
+    associatedToken2[0],
     payer.publicKey,
     10_000_000,
-    [payer.publicKey],
-    TOKEN_PROGRAM_ID,
   );
 
   /**
@@ -177,8 +173,9 @@ import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
       initializeMintInstruction,
       createMetadataInstruction,
       createAssociatedTokenAccountSelfInstruction,
-      //   mintTokenToSelfInstruction,
-      //   mintTokenToStaticAddressInstruction,
+      mintTokenToSelfInstruction,
+      createAssociatedTokenAccountStaticInstruction,
+      mintTokenToStaticAddressInstruction,
     ],
   });
 
